@@ -37,16 +37,26 @@ class Column extends BaseColumn
     {
         if (!$this->isIgnored()) {
             $comment = $this->getComment();
+
+            $columnAsAnnotation =  $this->asAnnotation();
+            $isSetColumnDefaultValue = isset($columnAsAnnotation['options']['default']) 
+                && $this->getFormatter()->getDatatypeConverter()->getNativeType($columnAsAnnotation['type']) != '\\DateTime';
+            $columnDefaultValue = $isSetColumnDefaultValue ? $columnAsAnnotation['options']['default'] : null;
             $writer
                 ->write('/**')
                 ->writeIf($comment, $comment)
                 ->writeIf($this->isPrimary,
                         ' * '.$this->getTable()->getAnnotation('Id'))
-                ->write(' * '.$this->getTable()->getAnnotation('Column', $this->asAnnotation()))
+                ->write(' * '.$this->getTable()->getAnnotation('Column', $columnAsAnnotation))
                 ->writeIf($this->isAutoIncrement(),
                         ' * '.$this->getTable()->getAnnotation('GeneratedValue', array('strategy' => strtoupper($this->getConfig()->get(Formatter::CFG_GENERATED_VALUE_STRATEGY)))))
                 ->write(' */')
-                ->write('protected $'.$this->getColumnName().';')
+                ->write('protected $'.$this->getColumnName().(
+                    $isSetColumnDefaultValue ? ' = '.
+                        (is_string($columnDefaultValue) && $columnDefaultValue !== "NULL"?'"':'').
+                            ($columnDefaultValue === "NULL" ? 'null' : $columnDefaultValue).
+                        (is_string($columnDefaultValue) && $columnDefaultValue !== "NULL"?'"':'') : ''
+                    ).';')
                 ->write('')
             ;
         }
@@ -103,6 +113,7 @@ class Column extends BaseColumn
 
     public function asAnnotation()
     {
+//         $this->getDocument()->addLog(sprintf('  Attributes for "%s" : %s', $this->getColumnName(), serialize($this->parameters)));
         $attributes = array(
             'name' => ($columnName = $this->getTable()->quoteIdentifier($this->getColumnName())) !== $this->getColumnName() ? $columnName : null,
             'type' => $this->getFormatter()->getDatatypeConverter()->getMappedType($this),
@@ -117,9 +128,28 @@ class Column extends BaseColumn
         if ($this->isNullableRequired()) {
             $attributes['nullable'] = $this->getNullableValue();
         }
-        if($this->isUnsigned()) {
+        if ($this->isUnsigned()) {
             $attributes['options'] = array('unsigned' => true);
         }
+        if (($default = $this->parameters->get('defaultValue')) !== null) {
+            // Process NULL string as special value
+            if ($default !== "NULL") {
+                switch ($this->getFormatter()->getDatatypeConverter()->getNativeType($attributes['type'])) {
+                    case 'integer'      : $default = $default != ""?intval($default):null; break;
+                    case 'boolean'      : $default = $default == "true"?true:($default == "false"?false:null); break;
+                    case 'string'       : $default = (string) substr($default, 1, -1); break;
+                    case '\\DateTime'   : $default = $default != ""?(string) $default:null; break;
+                    case 'float'        : $default = $default != ""?floatval($default):null; break;
+                    default             : $default = null;
+                }
+            }
+            if ($default !== null) {
+                if (!isset($attributes['options'])) {
+                    $attributes['options'] = [];
+                }
+                $attributes['options']['default'] = $default;
+            }
+        }   
 
         return $attributes;
     }

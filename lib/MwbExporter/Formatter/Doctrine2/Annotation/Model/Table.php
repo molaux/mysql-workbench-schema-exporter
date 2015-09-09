@@ -503,14 +503,13 @@ class Table extends BaseTable
                 }
             }
             throw new \Exception('Discriminator column '.$column.' was not found in '.$this->getModelName());
-            }
-        elseif ($type = strtolower(trim($this->parseComment('discriminatorType')))) {
+        } elseif ($type = strtolower(trim($this->parseComment('discriminatorType')))) {
             if (!in_array($type, $this->getFormatter()->getInheritanceDiscriminatorMeaningTypes())) {
                 throw new \Exception('Type '.$type.' is not available');
             }
-        } else
+        } else {
             $type = $this->getConfig()->get(Formatter::CFG_EXTENDABLE_ENTITY_DEFAULT_DISCR_TYPE);
-            
+        }    
         return $type;
     }
     
@@ -883,6 +882,7 @@ class Table extends BaseTable
 
     protected function writeRelationsGetterAndSetter(WriterInterface $writer, $base = false, $entityName = "")
     {
+        $extendableEntity    = $this->getConfig()->get(Formatter::CFG_GENERATE_EXTENDABLE_ENTITY);
         // N <=> 1 references
         foreach ($this->getAllLocalForeignKeys() as $local) {
             if ($this->isLocalForeignKeyIgnored($local)) {
@@ -1069,6 +1069,7 @@ class Table extends BaseTable
 
     protected function writeManyToManyGetterAndSetter(WriterInterface $writer, $base = false, $entityName = "")
     {
+        $extendableEntity    = $this->getConfig()->get(Formatter::CFG_GENERATE_EXTENDABLE_ENTITY);
         foreach ($this->getTableM2MRelations() as $relation) {
             $this->getDocument()->addLog(sprintf('  Writing N <=> N relation "%s"', $relation['refTable']->getModelName()));
 
@@ -1080,7 +1081,7 @@ class Table extends BaseTable
                 ->write(' * @param '. $relation['refTable']->getNamespace(null, true, $base).' $'.lcfirst($relation['refTable']->getModelName()))
                 ->write(' * @return '.$this->getNamespace($this->getClassName($base), true, $base))
                 ->write(' */')
-                ->write('public function add'.$relation['refTable']->getModelName().'('.$relation['refTable']->getModelName().' $'.lcfirst($relation['refTable']->getModelName()).')')
+                ->write('public function add'.$relation['refTable']->getModelName().'('.$relation['refTable']->getClassName($extendableEntity).' $'.lcfirst($relation['refTable']->getModelName()).')')
                 ->write('{')
                 ->indent()
                     ->writeCallback(function(WriterInterface $writer, Table $_this = null) use ($isOwningSide, $relation) {
@@ -1100,7 +1101,7 @@ class Table extends BaseTable
                 ->write(' * @param '. $relation['refTable']->getNamespace(null, true, $base).' $'.lcfirst($relation['refTable']->getModelName()))
                 ->write(' * @return '.$this->getNamespace($this->getClassName($base), true, $base))
                 ->write(' */')
-                ->write('public function remove'.$relation['refTable']->getModelName().'('.$relation['refTable']->getModelName().' $'.lcfirst($relation['refTable']->getModelName()).')')
+                ->write('public function remove'.$relation['refTable']->getModelName().'('.$relation['refTable']->getClassName($extendableEntity).' $'.lcfirst($relation['refTable']->getModelName()).')')
                 ->write('{')
                 ->indent()
                     ->writeCallback(function(WriterInterface $writer, Table $_this = null) use ($isOwningSide, $relation) {
