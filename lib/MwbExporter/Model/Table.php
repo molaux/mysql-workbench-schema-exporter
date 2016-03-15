@@ -319,7 +319,11 @@ class Table extends Base
     public function getModelName()
     {
         $tableName = $this->getRawTableName();
-
+        
+        // check if a schema is present
+        $tokens = explode('.', $tableName);
+        $tableName = $tokens[count($tokens) -1];
+        
         // check if table name is plural --> convert to singular
         if (
             !$this->getConfig()->get(FormatterInterface::CFG_SKIP_PLURAL) &&

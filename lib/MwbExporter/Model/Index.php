@@ -127,4 +127,14 @@ class Index extends Base
 
         return $columns;
     }
+    
+    /**
+     * Get name from parameter.
+     *
+     * @return string
+     */
+    public function getName()
+    {
+        return str_replace('.', '_', parent::getName());
+    }
 }
