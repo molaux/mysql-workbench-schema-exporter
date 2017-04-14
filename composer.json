@@ -1,5 +1,5 @@
 {
-	"name" : "mysql-workbench-schema-exporter/mysql-workbench-schema-exporter",
+	"name" : "molaux/mysql-workbench-schema-exporter",
 	"type" : "library",
 	"description" : "MySQL Workbench Schema Exporter",
 	"keywords" : [
@@ -13,7 +13,7 @@
 		"zend",
 		"sequelizejs"
 	],
-	"homepage" : "https://github.com/johmue/mysql-workbench-schema-exporter",
+	"homepage" : "https://github.com/molaux/mysql-workbench-schema-exporter",
 	"license" : "MIT",
 	"authors" : [{
 			"name" : "Johannes Mueller",
@@ -22,6 +22,10 @@
 		}, {
 			"name" : "Toha",
 			"email" : "tohenk@yahoo.com",
+			"role" : "Developer"
+		}, {
+			"name" : "Marc-Olivier Laux",
+			"email" : "marc-olivier@matlaux.net",
 			"role" : "Developer"
 		}
 	],
