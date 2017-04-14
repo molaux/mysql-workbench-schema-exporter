@@ -278,7 +278,7 @@ Common Setup Options for Doctrine 2.0:
     
   * `generateExtendableEntityWithSingleInheritance` 
   
-    Wether or not to use Doctrine Single Inheritance for `generateExtendableEntity` (old MWB fashion). 
+    Wether or not to use Doctrine Single Inheritance for `generateExtendableEntity` (old MWBE way). 
     
     Default is `false`.
 
