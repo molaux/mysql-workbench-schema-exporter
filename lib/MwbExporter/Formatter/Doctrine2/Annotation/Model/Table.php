@@ -508,7 +508,7 @@ class Table extends BaseTable
                 throw new \Exception('Type '.$type.' is not available');
             }
         } else {
-            $type = $this->getConfig()->get(Formatter::CFG_EXTENDABLE_ENTITY_DEFAULT_DISCR_TYPE);
+            $type = $this->getConfig()->get(Formatter::CFG_SINGLE_INHERITANCE_DEFAULT_DISCRIMINATOR_TYPE);
         }    
         return $type;
     }
@@ -529,11 +529,11 @@ class Table extends BaseTable
 
     protected function getInheritanceDiscriminatorMap()
     {
-        $extendableEntity       = $this->getConfig()->get(Formatter::CFG_GENERATE_EXTENDABLE_ENTITY);
-        $singleInheritance      = $this->getConfig()->get(Formatter::CFG_GENERATE_SINGLE_INHERITANCE);
-        $discriminatorClasses   = array();
-        $discriminatorKeys      = array();
-        $discriminatorMap       = array_combine($discriminatorKeys, $discriminatorClasses);
+        $extendableEntity                       = $this->getConfig()->get(Formatter::CFG_GENERATE_EXTENDABLE_ENTITY);
+        $extendableEntityWithSingleInheritance  = $this->getConfig()->get(Formatter::CFG_GENERATE_EXTENDABLE_ENTITY_WITH_SINGLE_INHERITANCE);
+        $discriminatorClasses                   = array();
+        $discriminatorKeys                      = array();
+        $discriminatorMap                       = array_combine($discriminatorKeys, $discriminatorClasses);
         
         if ($this->parseComment('discriminatorMap')) {
         
@@ -548,7 +548,7 @@ class Table extends BaseTable
             
         }
         
-        if (($singleInheritance || count($discriminatorMap)) 
+        if (($extendableEntityWithSingleInheritance || count($discriminatorMap)) 
             && !in_array($this->getClassName(), $discriminatorMap)) {
             
             $key    = "1";

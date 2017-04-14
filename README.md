@@ -276,11 +276,13 @@ Common Setup Options for Doctrine 2.0:
 
     Default is `false`.
     
-  * `generateSingleInheritance` 
+  * `generateExtendableEntityWithSingleInheritance` 
   
-    Wether or not to force single inheritance on all generated entities (Regardless workbench comments).
+    Wether or not to use Doctrine Single Inheritance for `generateExtendableEntity` (old MWB fashion). 
+    
+    Default is `false`.
 
-  * `extendableEntityDefaultDiscriminatorType`
+  * `singleInheritanceDefaultDiscriminatorType`
   
     This option allows you to specify the default type for discriminator column.
     
@@ -381,8 +383,9 @@ Common Setup Options for Doctrine 2.0:
 
   * `{d:discriminatorMap}value=class, ...{/d:discriminatorMap}` (applied to Table)
   
-    In the Single Table Inheritance context, this option overrides the default map (base=Base%Entity%, extended=%Entity%) 
-    with your own discriminator map.
+    Provide your own discriminator map. 
+    
+    
 
     
 #### Doctrine 2.0 Annotation with ZF2 Input Filter Classes
