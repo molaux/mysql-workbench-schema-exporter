@@ -169,7 +169,7 @@ class Table extends BaseTable
      * @param boolean $owningSide  Is join for owning side or vice versa
      * @return \MwbExporter\Object\Annotation
      */
-    protected function getJoins(ForeignKey $fkey, $owningSide = true)
+    protected function getJoins(ForeignKey $fkey, $owningSide = true, $annotationOptions = array())
     {
         $joins = array();
         $lcols = $owningSide ? $fkey->getForeigns() : $fkey->getLocals();
@@ -177,14 +177,15 @@ class Table extends BaseTable
         $onDelete = $this->getFormatter()->getDeleteRule($fkey->getParameters()->get('deleteRule'));
         for ($i = 0; $i < count($lcols); $i++) {
             $joins[] = $this->getAnnotation('JoinColumn', array(
-                'name'                  => $this->quoteIdentifier($lcols[$i]->getColumnName()),
-                'referencedColumnName'  => $this->quoteIdentifier($fcols[$i]->getColumnName()),
-                'nullable'              => $lcols[$i]->getNullableValue(true),
-                'onDelete'              => $onDelete,
-            ));
+                    'name'                  => $this->quoteIdentifier($lcols[$i]->getColumnName()),
+                    'referencedColumnName'  => $this->quoteIdentifier($fcols[$i]->getColumnName()),
+                    'nullable'              => $lcols[$i]->getNullableValue(true),
+                    'onDelete'              => $onDelete,
+                )
+            );
         }
 
-        return count($joins) > 1 ? $this->getAnnotation('JoinColumns', array($joins), array('multiline' => true, 'wrapper' => ' * %s')) : $joins[0];
+        return count($joins) > 1 ? $this->getAnnotation('JoinColumns', array($joins), $annotationOptions) : $joins[0]->setOptions($annotationOptions);
     }
 
     public function writeTable(WriterInterface $writer)
@@ -244,9 +245,19 @@ class Table extends BaseTable
             ->write(' *')
             ->writeIf($comment, $comment)
             ->write(' * '.$this->getAnnotation('Entity', array('repositoryClass' => $this->getConfig()->get(Formatter::CFG_AUTOMATIC_REPOSITORY) ? sprintf('%s\%sRepository', $repositoryNamespace, $this->getModelName()) : null)))
-            ->write(' * '.$this->getAnnotation('Table', array('name' => $this->quoteIdentifier($this->getRawTableName()), 'indexes' => $this->getIndexesAnnotation('Index'), 'uniqueConstraints' => $this->getIndexesAnnotation('UniqueConstraint'))))
+            ->write(' * '.$this->getAnnotation(
+                'Table', 
+                array(
+                    'name' => $this->quoteIdentifier($this->getRawTableName()), 
+                    'indexes' => $this->getIndexesAnnotation('Index'), 
+                    'uniqueConstraints' => $this->getIndexesAnnotation('UniqueConstraint')
+                ),
+                array(
+                    'wrapper' => ' * %s'
+                ))
+            )
             ->writeIf($singleInheritance, ' * '.$this->getAnnotation('InheritanceType', array('SINGLE_TABLE')))
-            ->writeIf($singleInheritance, ' * '.$this->getAnnotation('DiscriminatorColumn', $this->getInheritanceDiscriminatorColumn()))
+            ->writeIf($singleInheritance, ' * '.$this->getAnnotation('DiscriminatorColumn', $this->getInheritanceDiscriminatorColumn(), array('wrapper' => ' * %s')))
             ->writeIf($singleInheritance, ' * '.$this->getAnnotation('DiscriminatorMap', 
                 array(
                     array_map(function($entityName) use ($extendableEntity) {
@@ -255,7 +266,7 @@ class Table extends BaseTable
                         $this->getInheritanceDiscriminatorMap()
                     )
                 ), 
-                array('useKeys' => true)))
+                array('useKeys' => true, 'wrapper' => ' * %s')))
             ->writeIf($lifecycleCallbacks, ' * @HasLifecycleCallbacks')
             ->write(' */')
             ->write(($extendableEntity? 'abstract ' : '').'class '.$this->getClassName($extendableEntity).$extendsClass.$implementsInterface)
@@ -291,7 +302,11 @@ class Table extends BaseTable
             ->close()
         ;
         
-        foreach ($this->getInheritanceDiscriminatorMap() as $entityClassName) {
+        $entityClassNames = $this->getInheritanceDiscriminatorMap();
+        if ($extendableEntity && 0 == count($entityClassNames)) {
+            $entityClassNames = [$this->getClassName()];
+        }
+        foreach ($entityClassNames as $entityClassName) {
         
             $extendedClassName  = $this->getClassName();
             $repoName           = $entityClassName;
@@ -548,7 +563,7 @@ class Table extends BaseTable
             
         }
         
-        if (($extendableEntityWithSingleInheritance || count($discriminatorMap)) 
+        if (($extendableEntity && $extendableEntityWithSingleInheritance || count($discriminatorMap)) 
             && !in_array($this->getClassName(), $discriminatorMap)) {
             
             $key    = "1";
@@ -672,8 +687,8 @@ class Table extends BaseTable
 
                 $writer
                     ->write('/**')
-                    ->write(' * '.$this->getAnnotation('OneToMany', $annotationOptions))
-                    ->write(' * '.$this->getJoins($local))
+                    ->write(' * '.$this->getAnnotation('OneToMany', $annotationOptions, array('wrapper' => ' * %s')))
+                    ->write(' * '.$this->getJoins($local, true, array('wrapper' => ' * %s')))
                     ->writeCallback(function(WriterInterface $writer, Table $_this = null) use ($local) {
                         if (count($orders = $_this->getFormatter()->getOrderOption($local->parseComment('order')))) {
                             $writer
@@ -690,7 +705,7 @@ class Table extends BaseTable
 
                 $writer
                     ->write('/**')
-                    ->write(' * '.$this->getAnnotation('OneToOne', $annotationOptions))
+                    ->write(' * '.$this->getAnnotation('OneToOne', $annotationOptions, array('wrapper' => ' * %s')))
                     ->write(' */')
                     ->write('protected $'.lcfirst($targetEntity).';')
                     ->write('')
@@ -724,8 +739,8 @@ class Table extends BaseTable
 
                 $writer
                     ->write('/**')
-                    ->write(' * '.$this->getAnnotation('ManyToOne', $annotationOptions))
-                    ->write(' * '.$this->getJoins($foreign, false))
+                    ->write(' * '.$this->getAnnotation('ManyToOne', $annotationOptions, array('wrapper' => ' * %s')))
+                    ->write(' * '.$this->getJoins($foreign, false, array('wrapper' => " * %s")))
                     ->write(' */')
                     ->write('protected $'.lcfirst($this->getRelatedVarName($targetEntity, $related)).';')
                     ->write('')
@@ -741,7 +756,7 @@ class Table extends BaseTable
                 $writer
                     ->write('/**')
                     ->write(' * '.$this->getAnnotation('OneToOne', $annotationOptions))
-                    ->write(' * '.$this->getJoins($foreign, false))
+                    ->write(' * '.$this->getJoins($foreign, false, array('wrapper' => " * %s")))
                     ->write(' */')
                     ->write('protected $'.lcfirst($targetEntity).';')
                     ->write('')
@@ -778,13 +793,13 @@ class Table extends BaseTable
 
                 $writer
                     ->write('/**')
-                    ->write(' * '.$this->getAnnotation('ManyToMany', $annotationOptions))
+                    ->write(' * '.$this->getAnnotation('ManyToMany', $annotationOptions, array('wrapper' => ' * %s')))
                     ->write(' * '.$this->getAnnotation('JoinTable',
                         array(
                             'name'               => $this->quoteIdentifier($relation['reference']->getOwningTable()->getRawTableName()),
                             'joinColumns'        => array($this->getJoins($fk1, false)),
                             'inverseJoinColumns' => array($this->getJoins($fk2, false)),
-                        ), array('multiline' => true, 'wrapper' => ' * %s')))
+                        ), array('wrapper' => ' * %s')))
                     ->writeCallback(function(WriterInterface $writer, Table $_this = null) use ($fk2) {
                         if (count($orders = $_this->getFormatter()->getOrderOption($fk2->parseComment('order')))) {
                             $writer
@@ -805,7 +820,7 @@ class Table extends BaseTable
                 $annotationOptions['inversedBy'] = null;
                 $writer
                     ->write('/**')
-                    ->write(' * '.$this->getAnnotation('ManyToMany', $annotationOptions))
+                    ->write(' * '.$this->getAnnotation('ManyToMany', $annotationOptions, array('wrapper' => ' * %s')))
                     ->write(' */')
                 ;
             }

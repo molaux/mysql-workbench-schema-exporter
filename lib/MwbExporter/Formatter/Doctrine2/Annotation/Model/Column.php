@@ -47,7 +47,7 @@ class Column extends BaseColumn
                 ->writeIf($comment, $comment)
                 ->writeIf($this->isPrimary,
                         ' * '.$this->getTable()->getAnnotation('Id'))
-                ->write(' * '.$this->getTable()->getAnnotation('Column', $columnAsAnnotation))
+                ->write(' * '.$this->getTable()->getAnnotation('Column', $columnAsAnnotation, array('wrapper' => ' * %s')))
                 ->writeIf($this->isAutoIncrement(),
                         ' * '.$this->getTable()->getAnnotation('GeneratedValue', array('strategy' => strtoupper($this->getConfig()->get(Formatter::CFG_GENERATED_VALUE_STRATEGY)))))
                 ->write(' */')

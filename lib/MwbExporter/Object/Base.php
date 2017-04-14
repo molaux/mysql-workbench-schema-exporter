@@ -134,23 +134,22 @@ class Base
      * @param int    $indent     Indent line
      * @return string
      */
-    protected function wrapLines($lines, $indent = 0)
+    protected function wrapLines($lines, $indent = 0, $wrapper = "%s")
     {
-        if ($wrapper = $this->getOption('wrapper')) {
-            $lines = explode("\n", $lines);
-            for ($i = 0; $i < count($lines); $i++) {
-                // first line ignored
-                if ($i === 0) {
-                    continue;
-                }
-                $line = $lines[$i];
-                if ($indent && $i < count($lines) - 1) {
-                    $line = str_repeat(' ', $indent).$line;
-                }
-                $lines[$i] = sprintf($wrapper, $line);
+        $lines = explode("\n", $lines);
+        for ($i = 0; $i < count($lines); $i++) {
+            // first line ignored
+            if ($i === 0) {
+                continue;
             }
-            $lines = implode("\n", $lines);
+            $line = $lines[$i];
+            if ($indent && $i < count($lines) - 1) {
+                $line = str_repeat(' ', $indent).$line;
+            }
+            
+            $lines[$i] = sprintf($wrapper, $line);
         }
+        $lines = implode("\n", $lines);
 
         return $lines;
     }

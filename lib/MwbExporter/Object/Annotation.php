@@ -61,10 +61,15 @@ class Annotation extends Base
     public function asCode($value)
     {
         $topLevel = true;
-        if (func_num_args() > 1 && false === func_get_arg(1)) {
+        if (false === $this->getOption('topLevel', null) || func_num_args() > 1 && false === func_get_arg(1)) {
             $topLevel = false;
         }
-
+        
+        $wrapper = $this->getOption('wrapper', '%s');
+        if (false === $topLevel) {
+            $wrapper = '%s';
+        }
+        
         $inlineList = false;
         if (func_num_args() > 2) {
             $inlineList = func_get_arg(2);
@@ -79,28 +84,38 @@ class Annotation extends Base
         } elseif (is_array($value)) {
             $tmp = array();
             $useKey = !$this->isKeysNumeric($value) || (false === $topLevel && $this->getOption('useKeys', false));
+            
             foreach ($value as $k => $v) {
+            
                 // skip null value
                 if (null === $v) {
                     continue;
                 }
+                
                 $v = $this->asCode($v, false, true);
                 if (false === $topLevel) {
                     $k = sprintf('"%s"', $k);
                 }
 
                 $tmp[] = $useKey ? sprintf("%s%s%s", $k, ($inlineList ? ':' : '='), $v) : $v;
+                
             }
-            $multiline = $this->getOption('multiline') && count($value) > 1;
-            $value = implode($multiline ? ",\n" : ', ', $tmp).($multiline ? "\n" : '');
+            
+            $multiline = $this->getOption('multiline', true) && count($value) > 1;
+            $value = implode($multiline ? ",\n" : ', ', $tmp)/*.($multiline ? "\n" : '')*/;
+            
             if ($topLevel) {
-                $value = sprintf('(%s)', $value);
+                $value = sprintf($multiline?"(\n%s\n)":'(%s)', $value);
             } else {
-                $value = sprintf('{%s}', $value);
+                $value = sprintf($multiline?"{\n%s\n}":'{%s}', $value);
             }
+
             if ($multiline) {
-                $value = $this->wrapLines($value, 4);
+                $value = $this->wrapLines($value, 4, '%s');
             }
+            
+            $value = $this->wrapLines($value, 0, $wrapper);
+            
         }
 
         return $value;
