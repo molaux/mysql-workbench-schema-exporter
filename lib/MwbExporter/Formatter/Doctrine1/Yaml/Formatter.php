@@ -57,7 +57,7 @@ class Formatter extends BaseFormatter
      * (non-PHPdoc)
      * @see \MwbExporter\Formatter\Formatter::createTable()
      */
-    public function createTable(Base $parent, $node)
+    public function createTable(Base $parent = null, $node)
     {
         return new Model\Table($parent, $node);
     }
@@ -66,7 +66,7 @@ class Formatter extends BaseFormatter
      * (non-PHPdoc)
      * @see \MwbExporter\Formatter\FormatterInterface::createColumns()
      */
-    public function createColumns(Base $parent, $node)
+    public function createColumns(Base $parent = null, $node)
     {
         return new Model\Columns($parent, $node);
     }
@@ -75,7 +75,7 @@ class Formatter extends BaseFormatter
      * (non-PHPdoc)
      * @see \MwbExporter\Formatter\FormatterInterface::createColumn()
      */
-    public function createColumn(Base $parent, $node)
+    public function createColumn(Base $parent = null, $node)
     {
         return new Model\Column($parent, $node);
     }
@@ -84,7 +84,7 @@ class Formatter extends BaseFormatter
      * (non-PHPdoc)
      * @see \MwbExporter\Formatter\FormatterInterface::createIndex()
      */
-    public function createIndex(Base $parent, $node)
+    public function createIndex(Base $parent = null, $node)
     {
         return new Model\Index($parent, $node);
     }
@@ -93,7 +93,7 @@ class Formatter extends BaseFormatter
      * (non-PHPdoc)
      * @see \MwbExporter\Formatter\Formatter::createForeignKey()
      */
-    public function createForeignKey(Base $parent, $node)
+    public function createForeignKey(Base $parent = null, $node)
     {
         return new Model\ForeignKey($parent, $node);
     }

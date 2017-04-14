@@ -61,7 +61,7 @@ class Formatter extends BaseFormatter
      * (non-PHPdoc)
      * @see \MwbExporter\Formatter\Formatter::createSchema()
      */
-    public function createSchema(Base $parent, $node)
+    public function createSchema(Base $parent = null, $node)
     {
         return new Model\Schema($parent, $node);
     }
@@ -70,7 +70,7 @@ class Formatter extends BaseFormatter
      * (non-PHPdoc)
      * @see \MwbExporter\Formatter\Formatter::createTable()
      */
-    public function createTable(Base $parent, $node)
+    public function createTable(Base $parent = null, $node)
     {
         return new Model\Table($parent, $node);
     }
@@ -79,7 +79,7 @@ class Formatter extends BaseFormatter
      * (non-PHPdoc)
      * @see \MwbExporter\Formatter\FormatterInterface::createColumn()
      */
-    public function createColumn(Base $parent, $node)
+    public function createColumn(Base $parent = null, $node)
     {
         return new Model\Column($parent, $node);
     }
@@ -88,7 +88,7 @@ class Formatter extends BaseFormatter
      * (non-PHPdoc)
      * @see \MwbExporter\Formatter\FormatterInterface::createIndex()
      */
-    public function createIndex(Base $parent, $node)
+    public function createIndex(Base $parent = null, $node)
     {
         return new Model\Index($parent, $node);
     }

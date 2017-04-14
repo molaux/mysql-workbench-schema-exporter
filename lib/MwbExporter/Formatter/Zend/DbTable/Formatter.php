@@ -68,7 +68,7 @@ class Formatter extends BaseFormatter
      * (non-PHPdoc)
      * @see \MwbExporter\Formatter\Formatter::createTable()
      */
-    public function createTable(Base $parent, $node)
+    public function createTable(Base $parent = null, $node)
     {
         return new Model\Table($parent, $node);
     }
@@ -77,7 +77,7 @@ class Formatter extends BaseFormatter
      * (non-PHPdoc)
      * @see \MwbExporter\Formatter\Formatter::createForeignKey()
      */
-    public function createForeignKey(Base $parent, $node)
+    public function createForeignKey(Base $parent = null, $node)
     {
         return new Model\ForeignKey($parent, $node);
     }
