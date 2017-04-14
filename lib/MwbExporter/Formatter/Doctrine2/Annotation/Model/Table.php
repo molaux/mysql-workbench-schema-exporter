@@ -548,7 +548,7 @@ class Table extends BaseTable
             
         }
         
-        if (($extendableEntity || $singleInheritance || count($discriminatorMap)) 
+        if (($singleInheritance || count($discriminatorMap)) 
             && !in_array($this->getClassName(), $discriminatorMap)) {
             
             $key    = "1";

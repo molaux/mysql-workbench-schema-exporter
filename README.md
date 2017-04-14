@@ -272,9 +272,13 @@ Common Setup Options for Doctrine 2.0:
     The extend class would not be generated if it already exist. So it is safe to place custom code
     inside the extend class.
 
-    This option will generate entity using Single Table Inheritance.
+    This option will generate entity using abstract classes.
 
     Default is `false`.
+    
+  * `generateSingleInheritance` 
+  
+    Wether or not to force single inheritance on all generated entities (Regardless workbench comments).
 
   * `extendableEntityDefaultDiscriminatorType`
   
