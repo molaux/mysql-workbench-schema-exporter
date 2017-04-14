@@ -327,7 +327,15 @@ class Table extends Base
         // check if table name is plural --> convert to singular
         if (
             !$this->getConfig()->get(FormatterInterface::CFG_SKIP_PLURAL) &&
-            ($tableName != ($singular = Inflector::singularize($tableName)))
+            ($tableName != ($singular = implode('_',
+                array_map(function($word) {
+                    return preg_replace('/^\*(.+)\*$/i', '\1', $word);
+                },
+                array_map('Doctrine\Common\Inflector\Inflector::singularize', 
+                array_map(function($word) {
+                    return preg_replace('/^(has|is)$/i', '*\1*', $word);
+                }, 
+                explode('_', $tableName)))))))
         ) {
             $tableName = $singular;
         }
