@@ -28,10 +28,11 @@
     "skipGetterAndSetter":false,
     "generateEntitySerialization":true,
     "generateExtendableEntity":true,
+    "generateExtendableEntityWithSingleInheritance":false,
     "quoteIdentifierStrategy":"none",
     "generatedValueStrategy":"identity",
     "extendableEntityDefaultDiscriminatorType":"string",
-    "overwriteExtendedEntities": true,
-    "overwriteRepositories": true
+    "overwriteExtendedEntities": false,
+    "overwriteRepositories": false
   }
 }

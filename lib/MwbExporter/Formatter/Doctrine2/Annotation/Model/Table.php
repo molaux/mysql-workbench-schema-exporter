@@ -221,7 +221,7 @@ class Table extends BaseTable
 
         $comment                = $this->getComment();
         
-        $this->getDocument()->addLog(sprintf('  Overwriting "%s"', $this->getClassName($extendableEntity)));
+        $this->getDocument()->addLog(sprintf('  Overwriting %sentity class "%s"', $extendableEntity ? 'base ' : '', $this->getClassName($extendableEntity)));
         $writer
             ->open($this->getClassFileName($extendableEntity ? true : false))
             ->write('<?php')
@@ -301,7 +301,6 @@ class Table extends BaseTable
         ;
         
         if ($this->getConfig()->get(Formatter::CFG_AUTOMATIC_REPOSITORY)) {
-            $this->getDocument()->addLog(sprintf('  %s "%sRepository"', $this->getConfig()->get(Formatter::CFG_OVERWRITE_REPOSITORIES) ? 'Overwriting' : 'Writing', $this->getModelName()));
             $this->writeRepository($writer, $this->getModelName(), $this->getConfig()->get(Formatter::CFG_OVERWRITE_REPOSITORIES));
         }
         
@@ -319,7 +318,6 @@ class Table extends BaseTable
             } else {
                 if ($extendableEntity) {
                     if ($entityClassName !== $this->getClassName()) {
-                        $this->getDocument()->addLog(sprintf('  Overwriting base "%s"', $entityClassName));
                         $this->writeEntity(
                             $writer, 
                             $entityClassName, 
@@ -329,7 +327,6 @@ class Table extends BaseTable
                             true
                         );
                     }
-                    $this->getDocument()->addLog(sprintf('  %s "%s"', $this->getConfig()->get(Formatter::CFG_OVERWRITE_EXTENDED_ENTITIES) ? 'Overwriting' : 'Writing', $entityClassName));
                     $this->writeEntity(
                         $writer, 
                         $entityClassName, 
@@ -340,7 +337,6 @@ class Table extends BaseTable
                     );
                 } else {
                     if ($entityClassName !== $this->getClassName()) {
-                        $this->getDocument()->addLog(sprintf('  Overwriting "%s"', $entityClassName));
                         $this->writeEntity(
                             $writer, 
                             $entityClassName, 
@@ -354,7 +350,6 @@ class Table extends BaseTable
                 
 
                 if ($this->getConfig()->get(Formatter::CFG_AUTOMATIC_REPOSITORY)) {
-                    $this->getDocument()->addLog(sprintf('  %s "%sRepository"', $this->getConfig()->get(Formatter::CFG_OVERWRITE_REPOSITORIES) ? 'Overwriting' : 'Writing', $repoName));
                     $this->writeRepository($writer, $repoName, $this->getConfig()->get(Formatter::CFG_OVERWRITE_REPOSITORIES));
                 }
             }
@@ -369,11 +364,14 @@ class Table extends BaseTable
         $classFileName          = $this->getClassFileName($isBase, $className);
         $namespace              = $this->getEntityNamespace($isBase);
         $extendedClassNameAlias = $extendedClassName;
-        if ($this->getEntityNamespace(true) !== $this->getEntityNamespace(false)) {
+        
+        if ($this->getEntityNamespace(true) !== $this->getEntityNamespace(false) || $className === $extendedClassName) {
             $extendedClassNameAlias = "Base".$extendedClassName;
         }
         
         if ($overwrite || !$writer->getStorage()->hasFile($classFileName)) {
+            $this->getDocument()->addLog(sprintf('  %s %sentity class "%s"', $writer->getStorage()->hasFile($classFileName) ? 'Overwriting' : 'Writing', $isBase ? 'base ': '', $className));
+
             $writer
                 ->open($classFileName)
                 ->write('<?php')
@@ -430,6 +428,8 @@ class Table extends BaseTable
         $classFileName          = $this->getRepositoryFileName($repoName);
         
         if ($overwrite || !$writer->getStorage()->hasFile($classFileName)) {
+            $this->getDocument()->addLog(sprintf('  %s repository class "%sRepository"', $writer->getStorage()->hasFile($classFileName) ? 'Overwriting' : 'Writing', $repoName));
+
             $writer
                 ->open($classFileName)
                 ->write('<?php')
