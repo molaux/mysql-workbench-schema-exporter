@@ -1,7 +1,7 @@
 {
   "export":"doctrine2-annotation",
   "zip":false,
-  "dir":"test\/Test\/TestBundle",
+  "dir":"src\/AppBundle",
   "params":{
     "logToConsole":true,
     "logFile":"",
@@ -16,10 +16,10 @@
     "sortTablesAndViews":true,
     "enhanceManyToManyDetection":true,
     "skipManyToManyTables":true,
-    "bundleNamespace":"Test\\TestBundle",
+    "bundleNamespace":"AppBundle",
     "entityNamespace":"Entity",
     "baseEntityNamespace":"Entity\\Base",
-    "repositoryNamespace":"Entity",
+    "repositoryNamespace":"Entity\\Repository",
     "useAutomaticRepository":true,
     "skipColumnWithRelation":false,
     "relatedVarNameFormat":"%name%%related%",
