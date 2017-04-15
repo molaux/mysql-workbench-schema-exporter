@@ -269,8 +269,7 @@ class Table extends BaseTable
                 array('useKeys' => true, 'wrapper' => ' * %s')))
             ->writeIf($lifecycleCallbacks, ' * @HasLifecycleCallbacks')
             ->write(' */')
-            ->write(($extendableEntity? 'abstract ' : '').'class '.$this->getClassName($extendableEntity).$extendsClass.$implementsInterface)
-            ->write('{')
+            ->write(($extendableEntity? 'abstract ' : '').'class '.$this->getClassName($extendableEntity).$extendsClass.$implementsInterface . ' {')
             ->indent()
                 ->writeCallback(function(WriterInterface $writer, Table $_this = null) use ($skipGetterAndSetter, $serializableEntity, $lifecycleCallbacks, $extendableEntity) {
                     $_this->writePreClassHandler($writer);
@@ -286,8 +285,7 @@ class Table extends BaseTable
                                 ->write('/**')
                                 ->write(' * @%s', ucfirst($callback))
                                 ->write(' */')
-                                ->write('public function %s()', $handler)
-                                ->write('{')
+                                ->write('public function %s() {', $handler)
                                 ->write('}')
                                 ->write('')
                             ;
@@ -301,6 +299,11 @@ class Table extends BaseTable
             ->write('}')
             ->close()
         ;
+        
+        if ($this->getConfig()->get(Formatter::CFG_AUTOMATIC_REPOSITORY)) {
+            $this->getDocument()->addLog(sprintf('  %s "%sRepository"', $this->getConfig()->get(Formatter::CFG_OVERWRITE_REPOSITORIES) ? 'Overwriting' : 'Writing', $this->getModelName()));
+            $this->writeRepository($writer, $this->getModelName(), $this->getConfig()->get(Formatter::CFG_OVERWRITE_REPOSITORIES));
+        }
         
         $entityClassNames = $this->getInheritanceDiscriminatorMap();
         if ($extendableEntity && 0 == count($entityClassNames)) {
@@ -348,6 +351,12 @@ class Table extends BaseTable
                         );
                     }
                 }
+                
+
+                if ($this->getConfig()->get(Formatter::CFG_AUTOMATIC_REPOSITORY)) {
+                    $this->getDocument()->addLog(sprintf('  %s "%sRepository"', $this->getConfig()->get(Formatter::CFG_OVERWRITE_REPOSITORIES) ? 'Overwriting' : 'Writing', $repoName));
+                    $this->writeRepository($writer, $repoName, $this->getConfig()->get(Formatter::CFG_OVERWRITE_REPOSITORIES));
+                }
             }
         }
     }
@@ -388,8 +397,7 @@ class Table extends BaseTable
                 ->write(' *')
                 ->write(' * '.$this->getAnnotation('Entity', array('repositoryClass' => $this->getConfig()->get(Formatter::CFG_AUTOMATIC_REPOSITORY) ? sprintf('%s\%sRepository', $repositoryNamespace, $repoName) : null)))
                 ->write(' */')
-                ->write(($isBase ? 'abstract ': '' ) . 'class %s extends %s', $this->getClassName($isBase, $className), $extendedClassNameAlias)
-                ->write('{');
+                ->write(($isBase ? 'abstract ': '' ) . 'class %s extends %s', $this->getClassName($isBase, $className), $extendedClassNameAlias . ' {');
             
             if ($isBase) {
                 $writer
@@ -416,6 +424,41 @@ class Table extends BaseTable
         }
     }
 
+    protected function writeRepository(WriterInterface $writer, $repoName, $overwrite = false) {
+                
+        $repositoryNamespace    = $this->getRepositoryNamespace();
+        $classFileName          = $this->getRepositoryFileName($repoName);
+        
+        if ($overwrite || !$writer->getStorage()->hasFile($classFileName)) {
+            $writer
+                ->open($classFileName)
+                ->write('<?php')
+                ->write('')
+                ->writeCallback(function(WriterInterface $writer, Table $_this = null) {
+                    if ($_this->getConfig()->get(Formatter::CFG_ADD_COMMENT)) {
+                        $writer
+                            ->write($_this->getFormatter()->getComment(Comment::FORMAT_PHP))
+                            ->write('')
+                        ;
+                    }
+                })
+                ->write('namespace %s;', $repositoryNamespace)
+                ->write('')
+                ->writeCallback(function(WriterInterface $writer, Table $_this = null) {
+                    $_this->writeRepositoryUsedClasses($writer);
+                    $writer->write('');
+                })
+                ->write('/**')
+                ->write(' * '.sprintf('%s/%sRepository', $repositoryNamespace, $repoName))
+                ->write(' *')
+                ->write(' */')
+                ->write('class %sRepository extends EntityRepository {', $repoName)
+                ->write('}')
+                ->close()
+            ;
+        }
+    }
+    
     /**
      * Get the generated class name.
      *
@@ -436,6 +479,22 @@ class Table extends BaseTable
         $entityName = ($base ? $baseEntityRelativePath : $entityRelativePath ).DIRECTORY_SEPARATOR.$entityName;
         
         return $this->getTableFileName(null, array('%entity%' => $entityName));
+    }
+    
+    /**
+     * Get the generated class name.
+     *
+     * @param bool $base
+     * @param string $entityName The target entity name
+     * @return string
+     */
+    protected function getRepositoryFileName($entityName = null)
+    {
+        $repoRelativePath = str_replace("\\", DIRECTORY_SEPARATOR, $this->getConfig()->get(Formatter::CFG_REPOSITORY_NAMESPACE));
+        $entityName = $entityName ? $entityName : $this->getModelName();
+        $repoName = $repoRelativePath . DIRECTORY_SEPARATOR . $entityName . 'Repository';
+        
+        return $this->getTableFileName(null, array('%entity%' => $repoName));
     }
     
     /**
@@ -508,6 +567,19 @@ class Table extends BaseTable
         return $uses;
     }
     
+    /**
+     * Get repository used classes.
+     *
+     * @return array
+     */
+    protected function getRepositoryUsedClasses()
+    {
+        $uses = array();
+        $uses[] = 'Doctrine\ORM\EntityRepository';
+
+        return $uses;
+    }
+
     protected function getInheritanceDiscriminatorType() 
     {
         $type = null;
@@ -580,6 +652,13 @@ class Table extends BaseTable
     public function writeUsedClasses(WriterInterface $writer)
     {
         $this->writeUses($writer, $this->getUsedClasses());
+
+        return $this;
+    }
+    
+    public function writeRepositoryUsedClasses(WriterInterface $writer)
+    {
+        $this->writeUses($writer, $this->getRepositoryUsedClasses());
 
         return $this;
     }
@@ -836,8 +915,7 @@ class Table extends BaseTable
     public function writeConstructor(WriterInterface $writer, $entityName = "")
     {
         $writer
-            ->write('public function __construct()')
-            ->write('{')
+            ->write('public function __construct() {')
             ->indent()
                 ->writeCallback(function(WriterInterface $writer, Table $_this = null) use ($entityName) {
                     
@@ -920,8 +998,7 @@ class Table extends BaseTable
                     ->write(' * @param '.$local->getOwningTable()->getNamespace(null, true, $base).' $'.lcfirst($local->getOwningTable()->getModelName()))
                     ->write(' * @return '.$this->getNamespace(null, true, $base))
                     ->write(' */')
-                    ->write('public function add'.$this->getRelatedVarName($local->getOwningTable()->getModelName(), $related).'('.$local->getOwningTable()->getClassName($base).' $'.lcfirst($local->getOwningTable()->getModelName()).')')
-                    ->write('{')
+                    ->write('public function add'.$this->getRelatedVarName($local->getOwningTable()->getModelName(), $related).'('.$local->getOwningTable()->getClassName($base).' $'.lcfirst($local->getOwningTable()->getModelName()).')' . ' {')
                     ->indent()
                         ->write('$this->'.lcfirst($this->getRelatedVarName($local->getOwningTable()->getModelName(), $related, true)).'[] = $'.lcfirst($local->getOwningTable()->getModelName()).';')
                         ->write('')
@@ -936,8 +1013,7 @@ class Table extends BaseTable
                     ->write(' * @param '.$local->getOwningTable()->getNamespace(null, true, $base).' $'.lcfirst($local->getOwningTable()->getModelName()))
                     ->write(' * @return '.$this->getNamespace(null, true, $base))
                     ->write(' */')
-                    ->write('public function remove'.$this->getRelatedVarName($local->getOwningTable()->getModelName(), $related).'('.$local->getOwningTable()->getClassName($base).' $'.lcfirst($local->getOwningTable()->getModelName()).')')
-                    ->write('{')
+                    ->write('public function remove'.$this->getRelatedVarName($local->getOwningTable()->getModelName(), $related).'('.$local->getOwningTable()->getClassName($base).' $'.lcfirst($local->getOwningTable()->getModelName()).') {')
                     ->indent()
                         ->write('$this->'.lcfirst($this->getRelatedVarName($local->getOwningTable()->getModelName(), $related, true)).'->removeElement($'.lcfirst($local->getOwningTable()->getModelName()).');')
                         ->write('')
@@ -951,8 +1027,7 @@ class Table extends BaseTable
                     ->write(' *')
                     ->write(' * @return '.$this->getCollectionInterface())
                     ->write(' */')
-                    ->write('public function get'.$this->getRelatedVarName($local->getOwningTable()->getModelName(), $related, true).'()')
-                    ->write('{')
+                    ->write('public function get'.$this->getRelatedVarName($local->getOwningTable()->getModelName(), $related, true).'() {')
                     ->indent()
                         ->write('return $this->'.lcfirst($this->getRelatedVarName($local->getOwningTable()->getModelName(), $related, true)).';')
                     ->outdent()
@@ -970,8 +1045,7 @@ class Table extends BaseTable
                     ->write(' * @param '.$local->getOwningTable()->getNamespace(null, true, $base).' $'.lcfirst($local->getOwningTable()->getModelName()))
                     ->write(' * @return '.$this->getNamespace(null, true, $base))
                     ->write(' */')
-                    ->write('public function set'.$local->getOwningTable()->getModelName().'('.$local->getOwningTable()->getClassName($base).' $'.lcfirst($local->getOwningTable()->getModelName()).' = null)')
-                    ->write('{')
+                    ->write('public function set'.$local->getOwningTable()->getModelName().'('.$local->getOwningTable()->getClassName($base).' $'.lcfirst($local->getOwningTable()->getModelName()).' = null) {')
                     ->indent()
                         ->writeIf(!$local->isUnidirectional(), '$'.lcfirst($local->getOwningTable()->getModelName()).'->set'.$local->getReferencedTable()->getModelName().'($this);')
                         ->write('$this->'.lcfirst($local->getOwningTable()->getModelName()).' = $'.lcfirst($local->getOwningTable()->getModelName()).';')
@@ -986,8 +1060,7 @@ class Table extends BaseTable
                     ->write(' *')
                     ->write(' * @return '.$local->getOwningTable()->getNamespace(null, true, $base))
                     ->write(' */')
-                    ->write('public function get'.$local->getOwningTable()->getModelName().'()')
-                    ->write('{')
+                    ->write('public function get'.$local->getOwningTable()->getModelName().'() {')
                     ->indent()
                         ->write('return $this->'.lcfirst($local->getOwningTable()->getModelName()).';')
                     ->outdent()
@@ -1019,8 +1092,7 @@ class Table extends BaseTable
                     ->write(' * @param '.$foreign->getReferencedTable()->getNamespace(null, true, $base).' $'.lcfirst($foreign->getReferencedTable()->getModelName()))
                     ->write(' * @return '.$this->getNamespace(null, true, $base))
                     ->write(' */')
-                    ->write('public function set'.$this->getRelatedVarName($foreign->getReferencedTable()->getModelName(), $related).'('.$foreign->getReferencedTable()->getClassName($base).' $'.lcfirst($foreign->getReferencedTable()->getModelName()).' = null)')
-                    ->write('{')
+                    ->write('public function set'.$this->getRelatedVarName($foreign->getReferencedTable()->getModelName(), $related).'('.$foreign->getReferencedTable()->getClassName($base).' $'.lcfirst($foreign->getReferencedTable()->getModelName()).' = null) {')
                     ->indent()
                         ->write('$this->'.lcfirst($this->getRelatedVarName($foreign->getReferencedTable()->getModelName(), $related)).' = $'.lcfirst($foreign->getReferencedTable()->getModelName()).';')
                         ->write('')
@@ -1034,8 +1106,7 @@ class Table extends BaseTable
                     ->write(' *')
                     ->write(' * @return '.$foreign->getReferencedTable()->getNamespace(null, true, $base))
                     ->write(' */')
-                    ->write('public function get'.$this->getRelatedVarName($foreign->getReferencedTable()->getModelName(), $related).'()')
-                    ->write('{')
+                    ->write('public function get'.$this->getRelatedVarName($foreign->getReferencedTable()->getModelName(), $related).'() {')
                     ->indent()
                         ->write('return $this->'.lcfirst($this->getRelatedVarName($foreign->getReferencedTable()->getModelName(), $related)).';')
                     ->outdent()
@@ -1053,8 +1124,7 @@ class Table extends BaseTable
                     ->write(' * @param '.$foreign->getReferencedTable()->getNamespace(null, true, $base).' $'.lcfirst($foreign->getReferencedTable()->getModelName()))
                     ->write(' * @return '.$this->getNamespace(null, true, $base))
                     ->write(' */')
-                    ->write('public function set'.$foreign->getReferencedTable()->getModelName().'('.$foreign->getReferencedTable()->getModelName().' $'.lcfirst($foreign->getReferencedTable()->getClassName($base)).')')
-                    ->write('{')
+                    ->write('public function set'.$foreign->getReferencedTable()->getModelName().'('.$foreign->getReferencedTable()->getModelName().' $'.lcfirst($foreign->getReferencedTable()->getClassName($base)).') {')
                     ->indent()
                         ->write('$this->'.lcfirst($foreign->getReferencedTable()->getModelName()).' = $'.lcfirst($foreign->getReferencedTable()->getModelName()).';')
                         ->write('')
@@ -1068,8 +1138,7 @@ class Table extends BaseTable
                     ->write(' *')
                     ->write(' * @return '.$foreign->getReferencedTable()->getNamespace(null, true, $base))
                     ->write(' */')
-                    ->write('public function get'.$foreign->getReferencedTable()->getModelName().'()')
-                    ->write('{')
+                    ->write('public function get'.$foreign->getReferencedTable()->getModelName().'() {')
                     ->indent()
                         ->write('return $this->'.lcfirst($foreign->getReferencedTable()->getModelName()).';')
                     ->outdent()
@@ -1096,8 +1165,7 @@ class Table extends BaseTable
                 ->write(' * @param '. $relation['refTable']->getNamespace(null, true, $base).' $'.lcfirst($relation['refTable']->getModelName()))
                 ->write(' * @return '.$this->getNamespace($this->getClassName($base), true, $base))
                 ->write(' */')
-                ->write('public function add'.$relation['refTable']->getModelName().'('.$relation['refTable']->getClassName($extendableEntity).' $'.lcfirst($relation['refTable']->getModelName()).')')
-                ->write('{')
+                ->write('public function add'.$relation['refTable']->getModelName().'('.$relation['refTable']->getClassName($extendableEntity).' $'.lcfirst($relation['refTable']->getModelName()).') {')
                 ->indent()
                     ->writeCallback(function(WriterInterface $writer, Table $_this = null) use ($isOwningSide, $relation) {
                         if ($isOwningSide) {
@@ -1116,8 +1184,7 @@ class Table extends BaseTable
                 ->write(' * @param '. $relation['refTable']->getNamespace(null, true, $base).' $'.lcfirst($relation['refTable']->getModelName()))
                 ->write(' * @return '.$this->getNamespace($this->getClassName($base), true, $base))
                 ->write(' */')
-                ->write('public function remove'.$relation['refTable']->getModelName().'('.$relation['refTable']->getClassName($extendableEntity).' $'.lcfirst($relation['refTable']->getModelName()).')')
-                ->write('{')
+                ->write('public function remove'.$relation['refTable']->getModelName().'('.$relation['refTable']->getClassName($extendableEntity).' $'.lcfirst($relation['refTable']->getModelName()).') {')
                 ->indent()
                     ->writeCallback(function(WriterInterface $writer, Table $_this = null) use ($isOwningSide, $relation) {
                         if ($isOwningSide) {
@@ -1135,8 +1202,7 @@ class Table extends BaseTable
                 ->write(' *')
                 ->write(' * @return '.$this->getCollectionInterface())
                 ->write(' */')
-                ->write('public function get'.$relation['refTable']->getPluralModelName().'()')
-                ->write('{')
+                ->write('public function get'.$relation['refTable']->getPluralModelName().'() {')
                 ->indent()
                     ->write('return $this->'.lcfirst($relation['refTable']->getPluralModelName()).';')
                 ->outdent()
@@ -1162,8 +1228,7 @@ class Table extends BaseTable
     public function writeSerialization(WriterInterface $writer)
     {
         $writer
-            ->write('public function __sleep()')
-            ->write('{')
+            ->write('public function __sleep() {')
             ->indent()
                 ->write('return array(%s);', implode(', ', array_map(function($column) {
                     return sprintf('\'%s\'', $column);

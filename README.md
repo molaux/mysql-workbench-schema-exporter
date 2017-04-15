@@ -190,7 +190,13 @@ Common Setup Options for Doctrine 2.0:
 
   * `useAutomaticRepository`
 
-    Automatically generate entity repository class name.
+    Automatically generate entity repository classes.
+
+  * `overwriteRepositories`
+
+    Overwrites already present repository files.
+
+    Default is `false`.
 
   * `bundleNamespace`
 

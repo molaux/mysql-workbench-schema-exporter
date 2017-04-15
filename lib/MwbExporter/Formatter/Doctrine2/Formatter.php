@@ -37,6 +37,7 @@ abstract class Formatter extends BaseFormatter
     const CFG_BASE_ENTITY_NAMESPACE                 = 'baseEntityNamespace';
     const CFG_REPOSITORY_NAMESPACE                  = 'repositoryNamespace';
     const CFG_AUTOMATIC_REPOSITORY                  = 'useAutomaticRepository';
+    const CFG_OVERWRITE_REPOSITORIES                = 'overwriteRepositories';
     const CFG_SKIP_COLUMN_WITH_RELATION             = 'skipColumnWithRelation';
     const CFG_RELATED_VAR_NAME_FORMAT               = 'relatedVarNameFormat';
     const CFG_NULLABLE_ATTRIBUTE                    = 'nullableAttribute';
@@ -61,6 +62,7 @@ abstract class Formatter extends BaseFormatter
             static::CFG_BASE_ENTITY_NAMESPACE                 => 'Entity',
             static::CFG_REPOSITORY_NAMESPACE                  => 'Entity',
             static::CFG_AUTOMATIC_REPOSITORY                  => true,
+            static::CFG_OVERWRITE_REPOSITORIES                => false,
             static::CFG_SKIP_COLUMN_WITH_RELATION             => false,
             static::CFG_RELATED_VAR_NAME_FORMAT               => '%name%%related%',
             static::CFG_NULLABLE_ATTRIBUTE                    => static::NULLABLE_AUTO,
