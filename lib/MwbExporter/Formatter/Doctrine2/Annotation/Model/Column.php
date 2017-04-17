@@ -113,7 +113,6 @@ class Column extends BaseColumn
 
     public function asAnnotation()
     {
-//         $this->getDocument()->addLog(sprintf('  Attributes for "%s" : %s', $this->getColumnName(), serialize($this->parameters)));
         $attributes = array(
             'name' => ($columnName = $this->getTable()->quoteIdentifier($this->getColumnName())) !== $this->getColumnName() ? $columnName : null,
             'type' => $this->getFormatter()->getDatatypeConverter()->getMappedType($this),

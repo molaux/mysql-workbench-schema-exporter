@@ -174,6 +174,16 @@ class Table extends Base
     }
 
     /**
+     * Get columns model.
+     *
+     * @return \MwbExporter\Model\Columns;
+     */
+    public function getPrimaryColumns()
+    {
+        return $this->columns->filter(function(Column $column) { return $column->isPrimary(); });
+    }
+
+    /**
      * Get indices model.
      *
      * @return \MwbExporter\Model\Indices

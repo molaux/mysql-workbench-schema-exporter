@@ -275,6 +275,7 @@ class Table extends BaseTable
                     $_this->writePreClassHandler($writer);
                     $_this->writeVars($writer, $extendableEntity);
                     $_this->writeConstructor($writer);
+                    $_this->writeToString($writer);
                     if (!$skipGetterAndSetter) {
                         $_this->writeGetterAndSetter($writer, $extendableEntity);
                     }
@@ -401,15 +402,14 @@ class Table extends BaseTable
                 $writer
                     ->indent()
                     ->writeCallback(function(WriterInterface $writer, Table $_this = null) use ($skipGetterAndSetter, $serializableEntity, $className) {
-                    
-//                         $_this->writePreClassHandler($writer);
-//                         $_this->writeVars($writer, $className);
-//                         $_this->writeConstructor($writer, $className);
-//                         
-//                         if (!$skipGetterAndSetter) {
-//                             $_this->writeGetterAndSetter($writer, $className);
-//                         }
-//                         $_this->writePostClassHandler($writer);
+                        $writer->write('');
+//                          $_this->writeVars($writer, $isBase, $className);
+//                          $_this->writeConstructor($writer, $className);
+                        $_this->writeToString($writer, $className);
+        
+//                          if (!$skipGetterAndSetter) {
+//                                 $_this->writeGetterAndSetter($writer, $className);
+//                          }
                         
                     })
                     ->outdent()
@@ -924,6 +924,36 @@ class Table extends BaseTable
                         $_this->writeManyToManyConstructor($writer);
                     }
                 })
+            ->outdent()
+            ->write('}')
+            ->write('')
+        ;
+
+        return $this;
+    }
+    
+    public function writeToString(WriterInterface $writer, $entityName = "")
+    {
+        
+        $entityName = $entityName == "" ? $this->getModelName() : $entityName;
+        
+        $primaryColumns = $this->getPrimaryColumns();
+        $id = "";
+        
+        if (count($primaryColumns)) {
+            $id = " ['.".implode (".','.", 
+                array_map(
+                    function(Column $c) { 
+                        return '$this->'.$c->getColumnName(); 
+                    }, 
+                    $primaryColumns
+                )).".']";
+        }
+        
+        $writer
+            ->write('public function __toString() {')
+            ->indent()
+                ->write("return '$entityName$id';")
             ->outdent()
             ->write('}')
             ->write('')

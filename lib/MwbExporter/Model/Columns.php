@@ -136,4 +136,8 @@ class Columns extends Base implements \ArrayAccess, \IteratorAggregate, \Countab
 
         return $this;
     }
+    
+    public function filter(callable $callback) {
+        return array_filter($this->childs, $callback);
+    }
 }
