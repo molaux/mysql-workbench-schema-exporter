@@ -273,14 +273,19 @@ abstract class Base
      */
     public function parseComment($needle_raw, $comment = null)
     {
+    
         if ($comment === null) {
             $comment = $this->parameters->get('comment');
         }
+        
         $needle_quoted = preg_quote($needle_raw);
+        
         $pattern = sprintf('@\{(%1$s):%2$s\}(.+)\{\/(%1$s):%2$s\}@si', $this->getFormatter()->getCommentTagPrefix(), $needle_quoted);
         if (preg_match($pattern, $comment, $matches) && isset($matches[2])) {
             return $matches[2];
         }
+        
+        return null;
     }
 
     /**

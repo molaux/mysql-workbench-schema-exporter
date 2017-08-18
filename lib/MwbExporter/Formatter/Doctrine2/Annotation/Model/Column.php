@@ -50,6 +50,8 @@ class Column extends BaseColumn
                 ->write(' * '.$this->getTable()->getAnnotation('Column', $columnAsAnnotation, array('wrapper' => ' * %s')))
                 ->writeIf($this->isAutoIncrement(),
                         ' * '.$this->getTable()->getAnnotation('GeneratedValue', array('strategy' => strtoupper($this->getConfig()->get(Formatter::CFG_GENERATED_VALUE_STRATEGY)))))
+                ->writeIf($this->hasCrudVisibilityAnnotation(),
+                        ' * '.$this->getTable()->getAnnotation('CrudVisibility', [$this->getTable()->getCrudVisibilities($this->parseComment('crudVisibility'))], array('wrapper' => ' * %s'), true))
                 ->write(' */')
                 ->write('protected $'.$this->getColumnName().(
                     $isSetColumnDefaultValue ? ' = '.
@@ -151,5 +153,9 @@ class Column extends BaseColumn
         }   
 
         return $attributes;
+    }
+    
+    public function hasCrudVisibilityAnnotation() {
+        return $this->parseComment('crudVisibility');
     }
 }

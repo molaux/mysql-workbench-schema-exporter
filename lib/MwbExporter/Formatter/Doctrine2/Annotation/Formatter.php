@@ -106,6 +106,16 @@ class Formatter extends BaseFormatter
     {
         return new Model\Column($parent, $node);
     }
+    
+    /**
+     * (non-PHPdoc)
+     * @see \MwbExporter\Formatter\FormatterInterface::createForeignKey()
+     */
+    public function createForeignKey(Base $parent = null, $node)
+    {
+        return new Model\ForeignKey($parent, $node);
+    }
+
 
     public function getTitle()
     {

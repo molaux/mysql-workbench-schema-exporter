@@ -77,6 +77,8 @@ class Annotation extends Base
 
         if ($value instanceof Annotation) {
             $value = (string) $value;
+        } elseif ($value instanceof ClassConstant) {
+            $value = "$value";
         } elseif (is_bool($value)) {
             $value = $value ? 'true' : 'false';
         } elseif (is_string($value)) {

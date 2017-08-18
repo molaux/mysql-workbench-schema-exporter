@@ -31,6 +31,7 @@ use MwbExporter\Formatter\Doctrine2\Model\Table as BaseTable;
 use MwbExporter\Formatter\Doctrine2\Annotation\Formatter;
 use MwbExporter\Model\ForeignKey;
 use MwbExporter\Object\Annotation;
+use MwbExporter\Object\ClassConstant;
 use MwbExporter\Writer\WriterInterface;
 use MwbExporter\Helper\Comment;
 use MwbExporter\Helper\ReservedWords;
@@ -114,9 +115,9 @@ class Table extends BaseTable
      * @param array  $options     The annotation options
      * @return \MwbExporter\Object\Annotation
      */
-    public function getAnnotation($annotation, $content = null, $options = array())
+    public function getAnnotation($annotation, $content = null, $options = array(), $isCustom = false)
     {
-        return new Annotation($this->addPrefix($annotation), $content, $options);
+        return new Annotation($isCustom ? $annotation : $this->addPrefix($annotation), $content, $options);
     }
 
     /**
@@ -502,18 +503,15 @@ class Table extends BaseTable
      *
      * @return string
      */
-    protected function getClassImplementations()
-    {
+    protected function getClassImplementations() {
     }
     
-
     /**
      * Get the class name to extend
      *
      * @return string
      */
-    protected function getClassToExtend()
-    {
+    protected function getClassToExtend() {
         $class = $this->getConfig()->get(Formatter::CFG_EXTENDS_CLASS);
         if(empty($class)) {
             return '';
@@ -538,6 +536,68 @@ class Table extends BaseTable
     }
 
     /**
+     * Convert MWB Comment to CrudVisibilities array
+     *
+     * @param string $comment
+     *
+     * @return array
+     */
+    public function getCrudVisibilities($comment) {
+    
+        return array_filter(
+            array_map(function ($flag) {
+                    return new ClassConstant('CrudVisibility::'.trim(strtoupper($flag)));
+                }, 
+                explode(',', $comment)
+            ), 
+            function ($token) {
+                return $token;
+            }
+        );
+        
+    }
+    
+    /**
+     * Retrieve if Entity has CrudVisibility Annotation
+     */
+    protected function hasCrudVisibilityAnnotation() {
+        
+        foreach ($this->getColumns() as $column) {
+            if ($column->hasCrudVisibilityAnnotation())
+                return true;
+        }
+        
+        // N <=> 1 references
+        foreach ($this->getAllForeignKeys() as $foreign) {
+            if (!$this->isForeignKeyIgnored($foreign) && $foreign->hasCrudVisibilityAnnotation()) {
+                return true;
+            }
+        }
+        
+        foreach ($this->getAllLocalForeignKeys() as $local) {
+            if (!$this->isLocalForeignKeyIgnored($local) && $local->hasCrudVisibilityAnnotation()) {
+                return true;
+            }
+        }
+        
+//         foreach ($this->getTableM2MRelations() as $relation) {
+//         }
+        
+    }
+    
+    /**
+     * Get the use class for User Annotations if applicable.
+     *
+     * @return string
+     */
+    protected function getAnnotationUse($className) {
+        switch($className) {
+            case 'CrudVisibility': return 'Sensio\Bundle\GeneratorBundle\Annotation\CrudVisibility';
+                
+        }
+    }
+
+    /**
      * Get the use class for ORM if applicable.
      *
      * @return string
@@ -557,9 +617,15 @@ class Table extends BaseTable
     protected function getUsedClasses()
     {
         $uses = array();
+        
+        if ($this->hasCrudVisibilityAnnotation()) {
+            $uses[] = $this->getAnnotationUse('CrudVisibility');
+        }
+        
         if ($orm = $this->getOrmUse()) {
             $uses[] = $orm;
         }
+        
         if (count($this->getTableM2MRelations()) || count($this->getAllLocalForeignKeys())) {
             $uses[] = $this->getCollectionClass();
         }
@@ -572,8 +638,7 @@ class Table extends BaseTable
      *
      * @return array
      */
-    protected function getRepositoryUsedClasses()
-    {
+    protected function getRepositoryUsedClasses() {
         $uses = array();
         $uses[] = 'Doctrine\ORM\EntityRepository';
 
@@ -617,7 +682,6 @@ class Table extends BaseTable
     protected function getInheritanceDiscriminatorMap()
     {
         $extendableEntity                       = $this->getConfig()->get(Formatter::CFG_GENERATE_EXTENDABLE_ENTITY);
-        $extendableEntityWithSingleInheritance  = $this->getConfig()->get(Formatter::CFG_GENERATE_EXTENDABLE_ENTITY_WITH_SINGLE_INHERITANCE);
         $discriminatorClasses                   = array();
         $discriminatorKeys                      = array();
         $discriminatorMap                       = array_combine($discriminatorKeys, $discriminatorClasses);
@@ -635,10 +699,10 @@ class Table extends BaseTable
             
         }
         
-        if (($extendableEntity && $extendableEntityWithSingleInheritance || count($discriminatorMap)) 
+        if (($extendableEntity || count($discriminatorMap)) 
             && !in_array($this->getClassName(), $discriminatorMap)) {
             
-            $key    = "1";
+            $key    = "0";
             if (in_array($this->getInheritanceDiscriminatorType(), array('text', 'string'))) {
                 $key = $extendableEntity ? 'extended' : strtolower($this->getClassName());
             }
@@ -775,6 +839,8 @@ class Table extends BaseTable
                             ;
                         }
                     })
+                    ->writeIf($local->hasCrudVisibilityAnnotation(),
+                        ' * '.$local->getTable()->getAnnotation('CrudVisibility', array($local->getTable()->getCrudVisibilities($local->parseComment('crudVisibility'))), array('wrapper' => ' * %s'), true))
                     ->write(' */')
                     ->write('protected $'.lcfirst($this->getRelatedVarName($targetEntity, $related, true)).';')
                     ->write('')
@@ -785,6 +851,8 @@ class Table extends BaseTable
                 $writer
                     ->write('/**')
                     ->write(' * '.$this->getAnnotation('OneToOne', $annotationOptions, array('wrapper' => ' * %s')))
+                    ->writeIf($local->hasCrudVisibilityAnnotation(),
+                        ' * '.$local->getTable()->getAnnotation('CrudVisibility', array($local->getTable()->getCrudVisibilities($local->parseComment('crudVisibility'))), array('wrapper' => ' * %s'), true))
                     ->write(' */')
                     ->write('protected $'.lcfirst($targetEntity).';')
                     ->write('')
@@ -820,6 +888,8 @@ class Table extends BaseTable
                     ->write('/**')
                     ->write(' * '.$this->getAnnotation('ManyToOne', $annotationOptions, array('wrapper' => ' * %s')))
                     ->write(' * '.$this->getJoins($foreign, false, array('wrapper' => " * %s")))
+                    ->writeIf($foreign->hasCrudVisibilityAnnotation(),
+                        ' * '.$foreign->getTable()->getAnnotation('CrudVisibility', array($foreign->getTable()->getCrudVisibilities($foreign->parseComment('crudVisibility'))), array('wrapper' => ' * %s'), true))
                     ->write(' */')
                     ->write('protected $'.lcfirst($this->getRelatedVarName($targetEntity, $related)).';')
                     ->write('')
@@ -836,6 +906,8 @@ class Table extends BaseTable
                     ->write('/**')
                     ->write(' * '.$this->getAnnotation('OneToOne', $annotationOptions))
                     ->write(' * '.$this->getJoins($foreign, false, array('wrapper' => " * %s")))
+                    ->writeIf($foreign->hasCrudVisibilityAnnotation(),
+                        ' * '.$foreign->getTable()->getAnnotation('CrudVisibility', array($foreign->getTable()->getCrudVisibilities($foreign->parseComment('crudVisibility'))), array('wrapper' => ' * %s'), true))
                     ->write(' */')
                     ->write('protected $'.lcfirst($targetEntity).';')
                     ->write('')
@@ -889,6 +961,7 @@ class Table extends BaseTable
                     ->write(' */')
                 ;
             } else {
+            
                 $this->getDocument()->addLog(sprintf('  Applying setter/getter for N <=> N "%s"', "inverse"));
 
                 if ($fk2->isUnidirectional()) {
